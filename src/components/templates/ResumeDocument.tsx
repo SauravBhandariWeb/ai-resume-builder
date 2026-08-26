@@ -1,3 +1,5 @@
+
+
 import type { Resume, TemplateId } from '@/types';
 import { FONT_STACKS, FONT_SIZE_PX, SPACING_PX, monthYear } from '@/lib/resumeDefaults';
 
@@ -525,26 +527,52 @@ function CertsBlock({
         <div
           key={c.id}
           style={{
-            marginBottom: 4,
+            marginBottom: 6,
           }}
         >
-          <span
-            style={{
-              fontWeight: 600,
-              color: t.text,
-            }}
-          >
-            {c.name}
-          </span>
+          <div>
+            <span
+              style={{
+                fontWeight: 600,
+                color: t.text,
+              }}
+            >
+              {c.name}
+            </span>
 
-          <span
-            style={{
-              color: t.muted,
-            }}
-          >
-            {' — '}
-            {c.issuer}, {monthYear(c.date)}
-          </span>
+            <span
+              style={{
+                color: t.muted,
+              }}
+            >
+              {' — '}
+              {c.issuer}, {monthYear(c.date)}
+            </span>
+          </div>
+
+          {c.link && (
+            <div
+              style={{
+                marginTop: 2,
+                fontSize: Math.max(t.baseFont - 2, 10),
+                overflowWrap: 'anywhere',
+                wordBreak: 'break-word',
+              }}
+            >
+              <a
+                href={c.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: t.primary,
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                }}
+              >
+                {c.link}
+              </a>
+            </div>
+          )}
         </div>
       ))}
     </div>
