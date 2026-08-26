@@ -1,4 +1,11 @@
-import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  GripVertical,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
+
 import type {
   ResumeData,
   ExperienceItem,
@@ -11,6 +18,7 @@ import type {
   InterestItem,
   CustomSection,
 } from '@/types';
+
 import { uid, cls } from '@/lib/utils';
 import { Input, Field, Textarea } from './ui/Input';
 import Button from './ui/Button';
@@ -57,7 +65,9 @@ function Section({
         <h3 className="font-display font-semibold text-ink-900 dark:text-ink-100">
           {title}
           {typeof count === 'number' && (
-            <span className="ml-2 text-xs text-ink-400">({count})</span>
+            <span className="ml-2 text-xs text-ink-400">
+              ({count})
+            </span>
           )}
         </h3>
 
@@ -96,7 +106,9 @@ function ItemCard({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5 text-ink-400">
           <GripVertical className="h-4 w-4" />
-          <span className="text-xs font-medium">#{index + 1}</span>
+          <span className="text-xs font-medium">
+            #{index + 1}
+          </span>
         </div>
 
         <div className="flex items-center gap-1">
@@ -156,7 +168,9 @@ function PersonalEditor({ data, onChange }: Props) {
         <Field label="Full name">
           <Input
             value={p.fullName}
-            onChange={e => set({ fullName: e.target.value })}
+            onChange={e =>
+              set({ fullName: e.target.value })
+            }
             placeholder="Jane Doe"
           />
         </Field>
@@ -164,7 +178,9 @@ function PersonalEditor({ data, onChange }: Props) {
         <Field label="Job title">
           <Input
             value={p.jobTitle}
-            onChange={e => set({ jobTitle: e.target.value })}
+            onChange={e =>
+              set({ jobTitle: e.target.value })
+            }
             placeholder="Senior Software Engineer"
           />
         </Field>
@@ -172,7 +188,9 @@ function PersonalEditor({ data, onChange }: Props) {
         <Field label="Email">
           <Input
             value={p.email}
-            onChange={e => set({ email: e.target.value })}
+            onChange={e =>
+              set({ email: e.target.value })
+            }
             placeholder="jane@example.com"
           />
         </Field>
@@ -180,7 +198,9 @@ function PersonalEditor({ data, onChange }: Props) {
         <Field label="Phone">
           <Input
             value={p.phone}
-            onChange={e => set({ phone: e.target.value })}
+            onChange={e =>
+              set({ phone: e.target.value })
+            }
             placeholder="+1 555 0100"
           />
         </Field>
@@ -188,7 +208,9 @@ function PersonalEditor({ data, onChange }: Props) {
         <Field label="Location">
           <Input
             value={p.location}
-            onChange={e => set({ location: e.target.value })}
+            onChange={e =>
+              set({ location: e.target.value })
+            }
             placeholder="San Francisco, CA"
           />
         </Field>
@@ -196,7 +218,9 @@ function PersonalEditor({ data, onChange }: Props) {
         <Field label="Website">
           <Input
             value={p.website}
-            onChange={e => set({ website: e.target.value })}
+            onChange={e =>
+              set({ website: e.target.value })
+            }
             placeholder="janedoe.com"
           />
         </Field>
@@ -204,7 +228,9 @@ function PersonalEditor({ data, onChange }: Props) {
         <Field label="LinkedIn">
           <Input
             value={p.linkedin}
-            onChange={e => set({ linkedin: e.target.value })}
+            onChange={e =>
+              set({ linkedin: e.target.value })
+            }
             placeholder="linkedin.com/in/jane"
           />
         </Field>
@@ -212,7 +238,9 @@ function PersonalEditor({ data, onChange }: Props) {
         <Field label="GitHub">
           <Input
             value={p.github}
-            onChange={e => set({ github: e.target.value })}
+            onChange={e =>
+              set({ github: e.target.value })
+            }
             placeholder="github.com/jane"
           />
         </Field>
@@ -220,7 +248,9 @@ function PersonalEditor({ data, onChange }: Props) {
         <Field label="Photo URL">
           <Input
             value={p.photoUrl}
-            onChange={e => set({ photoUrl: e.target.value })}
+            onChange={e =>
+              set({ photoUrl: e.target.value })
+            }
             placeholder="https://…"
           />
         </Field>
@@ -231,7 +261,9 @@ function PersonalEditor({ data, onChange }: Props) {
 
 function SummaryEditor({ data, onChange }: Props) {
   return (
-    <Section title={data.summary.title || 'Profile Summary'}>
+    <Section
+      title={data.summary.title || 'Profile Summary'}
+    >
       <Field label="Section title">
         <Input
           value={data.summary.title}
@@ -774,7 +806,6 @@ function SkillsEditor({ data, onChange }: Props) {
         {
           id: uid(),
           name: '',
-          level: 'Intermediate',
         },
       ],
     });
@@ -803,7 +834,10 @@ function SkillsEditor({ data, onChange }: Props) {
     >
       <div className="grid sm:grid-cols-2 gap-3">
         {list.map((s, i) => (
-          <div key={s.id} className="flex gap-2">
+          <div
+            key={s.id}
+            className="flex gap-2"
+          >
             <Input
               className="flex-1"
               value={s.name}
@@ -889,7 +923,8 @@ function LanguagesEditor({ data, onChange }: Props) {
               value={l.proficiency}
               onChange={ev =>
                 update(i, {
-                  proficiency: ev.target.value as any,
+                  proficiency:
+                    ev.target.value as any,
                 })
               }
             >
@@ -1278,19 +1313,24 @@ function CustomSectionsEditor({ data, onChange }: Props) {
             <label className="label">Items</label>
 
             {cs.items.map((it, ii) => (
-              <div key={it.id} className="flex gap-2">
+              <div
+                key={it.id}
+                className="flex gap-2"
+              >
                 <Input
                   value={it.title}
                   placeholder="Label"
                   onChange={ev =>
                     update(i, {
-                      items: cs.items.map((x, idx) =>
-                        idx === ii
-                          ? {
-                              ...x,
-                              title: ev.target.value,
-                            }
-                          : x,
+                      items: cs.items.map(
+                        (x, idx) =>
+                          idx === ii
+                            ? {
+                                ...x,
+                                title:
+                                  ev.target.value,
+                              }
+                            : x,
                       ),
                     })
                   }
@@ -1301,13 +1341,15 @@ function CustomSectionsEditor({ data, onChange }: Props) {
                   placeholder="Value"
                   onChange={ev =>
                     update(i, {
-                      items: cs.items.map((x, idx) =>
-                        idx === ii
-                          ? {
-                              ...x,
-                              value: ev.target.value,
-                            }
-                          : x,
+                      items: cs.items.map(
+                        (x, idx) =>
+                          idx === ii
+                            ? {
+                                ...x,
+                                value:
+                                  ev.target.value,
+                              }
+                            : x,
                       ),
                     })
                   }
