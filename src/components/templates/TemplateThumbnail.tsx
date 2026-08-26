@@ -1,4 +1,4 @@
-ye le import type { TemplateId, Resume } from '@/types';
+import type { TemplateId, Resume } from '@/types';
 import { emptyResumeData, defaultSectionOrder, templateById } from '@/lib/resumeDefaults';
 import ResumeDocument from './ResumeDocument';
 import { useMemo } from 'react';
