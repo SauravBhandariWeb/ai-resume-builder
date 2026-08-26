@@ -427,23 +427,18 @@ function SkillsBlock({
         style={{
           display: 'flex',
           flexWrap: 'wrap',
-          gap: 6,
+          gap: '4px 10px',
         }}
       >
-        {data.skills.map(s => (
+        {data.skills.map((s, i) => (
           <span
             key={s.id}
             style={{
-              display: 'inline-block',
-              padding: '2px 10px',
-              borderRadius: 999,
-              background: (accent || t.primary) + '18',
-              color: accent || t.primary,
+              color: accent || t.text,
               fontSize: t.baseFont - 1,
-              border: `1px solid ${(accent || t.primary)}30`,
             }}
           >
-            {s.name}
+            {s.name}{i < data.skills.length - 1 ? ' ·' : ''}
           </span>
         ))}
       </div>
