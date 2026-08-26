@@ -26,7 +26,7 @@ export default function TemplateThumbnail({ templateId }: { templateId: Template
   return (
     <div style={{ pointerEvents: 'none' }}>
       <div style={{ transform: 'scale(0.42)', transformOrigin: 'top left', width: 794 }}>
-        <ResumeDocument resume={resume} scale={1} />
+        <ResumeDocument resume={resume} scale={1} plainSkillPills />
       </div>
     </div>
   );
