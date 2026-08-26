@@ -7,8 +7,11 @@ import ResumeDocument from '@/components/templates/ResumeDocument';
 /**
  * A4 PDF export.
  *
- * Renders the same ResumeDocument used by the browser preview,
- * at the exact A4 CSS width, then maps it to an A4 PDF.
+ * Renders the same ResumeDocument used by the browser preview.
+ *
+ * Fixes:
+ * 1. Fits the rendered resume onto a single A4 page when exporting.
+ * 2. Keeps "View Certificate" / other <a> links clickable in the PDF.
  */
 export async function exportResumeToPdf(resume: Resume): Promise<void> {
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
@@ -20,21 +23,18 @@ export async function exportResumeToPdf(resume: Resume): Promise<void> {
   const A4_WIDTH_PT = 595.28;
   const A4_HEIGHT_PT = 841.89;
 
-  /*
-   * Create an isolated rendering area.
-   */
   const host = document.createElement('div');
 
   Object.assign(host.style, {
-    position: 'absolute', // Changed from fixed to absolute
-    left: '0',            // Reset to 0 instead of -100000px to prevent rendering distortion
+    position: 'absolute',
+    left: '0',
     top: '0',
     width: `${A4_WIDTH_PX}px`,
     minWidth: `${A4_WIDTH_PX}px`,
     margin: '0',
     padding: '0',
     background: '#ffffff',
-    zIndex: '-9999',      // This hides it behind your app UI
+    zIndex: '-9999',
     overflow: 'visible',
     boxSizing: 'border-box',
   });
@@ -58,12 +58,7 @@ export async function exportResumeToPdf(resume: Resume): Promise<void> {
     root.render(React.createElement(Probe));
   });
 
-  /*
-   * Give fonts/images/layout time to finish.
-   */
   await document.fonts?.ready;
-
-  // Added a slight delay to ensure the browser has completely finished laying out the CSS
   await new Promise<void>((resolve) => setTimeout(resolve, 150));
 
   const target = host.firstElementChild as HTMLElement;
@@ -74,17 +69,44 @@ export async function exportResumeToPdf(resume: Resume): Promise<void> {
     throw new Error('Unable to render resume for PDF export.');
   }
 
-  /*
-   * Make sure the rendered document starts exactly at 0,0.
-   */
   target.style.margin = '0';
-  target.style.width = `${A4_WIDTH_PX}px`; // Force exact width on the target child
+  target.style.width = `${A4_WIDTH_PX}px`;
   target.style.transform = 'none';
   target.style.transformOrigin = 'top left';
 
-  /*
-   * Render at high resolution for sharper PDF text.
-   */
+  // Capture link positions before the temporary DOM is removed.
+  const targetRect = target.getBoundingClientRect();
+  const links = Array.from(
+    target.querySelectorAll<HTMLAnchorElement>('a[href]')
+  )
+    .map((anchor) => {
+      const rect = anchor.getBoundingClientRect();
+      const href = anchor.href?.trim();
+
+      if (!href || rect.width <= 0 || rect.height <= 0) {
+        return null;
+      }
+
+      return {
+        href,
+        leftPx: rect.left - targetRect.left,
+        topPx: rect.top - targetRect.top,
+        widthPx: rect.width,
+        heightPx: rect.height,
+      };
+    })
+    .filter(
+      (
+        item
+      ): item is {
+        href: string;
+        leftPx: number;
+        topPx: number;
+        widthPx: number;
+        heightPx: number;
+      } => Boolean(item)
+    );
+
   const canvas = await html2canvas(target, {
     scale: 2,
     backgroundColor: '#ffffff',
@@ -94,15 +116,11 @@ export async function exportResumeToPdf(resume: Resume): Promise<void> {
     width: A4_WIDTH_PX,
     scrollX: 0,
     scrollY: 0,
-    // Removed x: 0 and y: 0 to let html2canvas naturally find the target's boundaries
   });
 
   root.unmount();
   host.remove();
 
-  /*
-   * Create A4 PDF.
-   */
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'pt',
@@ -110,70 +128,61 @@ export async function exportResumeToPdf(resume: Resume): Promise<void> {
     compress: true,
   });
 
-  const pdfWidth = A4_WIDTH_PT;
-  const pdfHeight = A4_HEIGHT_PT;
-  const canvasWidth = canvas.width;
-  const canvasHeight = canvas.height;
-  const pxPerPt = canvasWidth / pdfWidth;
-  const pageHeightPx = Math.floor(pdfHeight * pxPerPt);
+  /*
+   * Fit the whole resume to one A4 page.
+   *
+   * This prevents a tiny leftover section (such as Achievements)
+   * from being pushed onto a second page.
+   */
+  const naturalImageWidthPt = A4_WIDTH_PT;
+  const naturalImageHeightPt =
+    (canvas.height / canvas.width) * A4_WIDTH_PT;
 
-  let offsetY = 0;
-  let pageIndex = 0;
+  const fitScale = Math.min(
+    1,
+    A4_HEIGHT_PT / naturalImageHeightPt
+  );
 
-  while (offsetY < canvasHeight) {
-    const sliceHeight = Math.min(pageHeightPx, canvasHeight - offsetY);
-    const pageCanvas = document.createElement('canvas');
+  const imageWidthPt = naturalImageWidthPt * fitScale;
+  const imageHeightPt = naturalImageHeightPt * fitScale;
+  const imageX = (A4_WIDTH_PT - imageWidthPt) / 2;
+  const imageY = 0;
 
-    pageCanvas.width = canvasWidth;
-    pageCanvas.height = sliceHeight;
+  const imageData = canvas.toDataURL('image/png');
 
-    const ctx = pageCanvas.getContext('2d');
-
-    if (!ctx) {
-      throw new Error('Unable to create PDF canvas.');
-    }
-
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-
-    ctx.drawImage(
-      canvas,
-      0,
-      offsetY,
-      canvasWidth,
-      sliceHeight,
-      0,
-      0,
-      canvasWidth,
-      sliceHeight
-    );
-
-    if (pageIndex > 0) {
-      pdf.addPage();
-    }
-
-    const imageData = pageCanvas.toDataURL('image/png');
-    const imageHeightPt = sliceHeight / pxPerPt;
-
-    pdf.addImage(
-      imageData,
-      'PNG',
-      0,
-      0,
-      pdfWidth,
-      imageHeightPt,
-      undefined,
-      'FAST'
-    );
-
-    offsetY += sliceHeight;
-    pageIndex++;
-  }
+  pdf.addImage(
+    imageData,
+    'PNG',
+    imageX,
+    imageY,
+    imageWidthPt,
+    imageHeightPt,
+    undefined,
+    'FAST'
+  );
 
   /*
-   * Download.
+   * Add real PDF link annotations over the rendered link text.
+   * This keeps "View Certificate" clickable instead of only visible.
    */
-  const filename = `${(resume.title || 'resume').replace(/[^a-z0-9-_ ]/gi, '_').trim()}.pdf`;
+  const pxToPdf = imageWidthPt / targetRect.width;
+
+  for (const link of links) {
+    const x = imageX + link.leftPx * pxToPdf;
+    const y = imageY + link.topPx * pxToPdf;
+    const w = link.widthPx * pxToPdf;
+    const h = link.heightPx * pxToPdf;
+
+    if (w > 0 && h > 0) {
+      pdf.link(x, y, w, h, {
+        url: link.href,
+      });
+    }
+  }
+
+  const filename = `${(resume.title || 'resume')
+    .replace(/[^a-z0-9-_ ]/gi, '_')
+    .trim() || 'resume'}.pdf`;
 
   downloadBlob(pdf.output('blob'), filename);
 }
