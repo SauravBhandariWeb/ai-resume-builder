@@ -1,5 +1,3 @@
-
-
 import type { Resume, TemplateId } from '@/types';
 import { FONT_STACKS, FONT_SIZE_PX, SPACING_PX, monthYear } from '@/lib/resumeDefaults';
 
@@ -569,7 +567,7 @@ function CertsBlock({
                   cursor: 'pointer',
                 }}
               >
-                {c.link}
+                View Certificate
               </a>
             </div>
           )}
