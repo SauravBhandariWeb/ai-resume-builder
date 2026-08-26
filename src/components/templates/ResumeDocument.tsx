@@ -213,7 +213,7 @@ function TemplateRouter({
   }
 }
 
-/* ---------- shared section rendering helpers ---------- */
+/* ---------- shared helpers ---------- */
 
 function SectionTitle({
   title,
@@ -224,6 +224,8 @@ function SectionTitle({
   t: ThemeCtx;
   align?: 'left' | 'center';
 }) {
+  if (!title?.trim()) return null;
+
   return (
     <h2
       style={{
@@ -256,6 +258,18 @@ function Divider({
       }}
     />
   );
+}
+
+function normalizeUrl(url: string): string {
+  const value = url.trim();
+
+  if (!value) return '';
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  return `https://${value}`;
 }
 
 function Bullets({
@@ -314,12 +328,14 @@ function ExperienceBlock({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'baseline',
+              gap: 12,
             }}
           >
             <span
               style={{
                 fontWeight: 700,
                 color: t.text,
+                minWidth: 0,
               }}
             >
               {e.position}
@@ -329,6 +345,8 @@ function ExperienceBlock({
               style={{
                 color: t.muted,
                 fontSize: t.baseFont - 1,
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               {monthYear(e.startDate)} –{' '}
@@ -384,12 +402,14 @@ function EducationBlock({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'baseline',
+              gap: 12,
             }}
           >
             <span
               style={{
                 fontWeight: 700,
                 color: t.text,
+                minWidth: 0,
               }}
             >
               {e.degree}
@@ -402,6 +422,8 @@ function EducationBlock({
               style={{
                 color: t.muted,
                 fontSize: t.baseFont - 1,
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               {monthYear(e.startDate)} –{' '}
@@ -441,7 +463,7 @@ function EducationBlock({
   );
 }
 
-/* ---------- PROJECTS ---------- */
+/* ---------- projects ---------- */
 
 function ProjectsBlock({
   data,
@@ -466,26 +488,35 @@ function ProjectsBlock({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'baseline',
+              gap: 12,
             }}
           >
             <span
               style={{
                 fontWeight: 700,
                 color: t.text,
+                minWidth: 0,
               }}
             >
               {p.name}
             </span>
 
             {p.link && (
-              <span
+              <a
+                href={normalizeUrl(p.link)}
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{
-                  color: t.muted,
+                  color: t.primary,
                   fontSize: t.baseFont - 1,
+                  textDecoration: 'underline',
+                  overflowWrap: 'anywhere',
+                  wordBreak: 'break-word',
+                  textAlign: 'right',
                 }}
               >
                 {p.link}
-              </span>
+              </a>
             )}
           </div>
 
@@ -518,7 +549,7 @@ function ProjectsBlock({
   );
 }
 
-/* ---------- SKILLS ---------- */
+/* ---------- skills ---------- */
 
 function SkillsBlock({
   data,
@@ -596,8 +627,9 @@ function CertsBlock({
   data: Resume['data'];
   t: ThemeCtx;
 }) {
-  if (!data.certifications.length)
+  if (!data.certifications.length) {
     return null;
+  }
 
   return (
     <div>
@@ -638,18 +670,16 @@ function CertsBlock({
                   10,
                 ),
                 overflowWrap: 'anywhere',
-                wordBreak:
-                  'break-word',
+                wordBreak: 'break-word',
               }}
             >
               <a
-                href={c.link}
+                href={normalizeUrl(c.link)}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
                   color: t.primary,
-                  textDecoration:
-                    'underline',
+                  textDecoration: 'underline',
                   cursor: 'pointer',
                 }}
               >
@@ -670,8 +700,9 @@ function AchievementsBlock({
   data: Resume['data'];
   t: ThemeCtx;
 }) {
-  if (!data.achievements.length)
+  if (!data.achievements.length) {
     return null;
+  }
 
   return (
     <ul
@@ -708,10 +739,8 @@ function AchievementsBlock({
 
               <span
                 style={{
-                  whiteSpace:
-                    'pre-wrap',
-                  overflowWrap:
-                    'break-word',
+                  whiteSpace: 'pre-wrap',
+                  overflowWrap: 'break-word',
                 }}
               >
                 {a.description}
@@ -731,8 +760,7 @@ function InterestsBlock({
   data: Resume['data'];
   t: ThemeCtx;
 }) {
-  if (!data.interests.length)
-    return null;
+  if (!data.interests.length) return null;
 
   return (
     <div
@@ -787,10 +815,8 @@ function CustomBlocks({
               {it.value && (
                 <span
                   style={{
-                    whiteSpace:
-                      'pre-wrap',
-                    overflowWrap:
-                      'break-word',
+                    whiteSpace: 'pre-wrap',
+                    overflowWrap: 'break-word',
                   }}
                 >
                   {' — '}
@@ -812,8 +838,7 @@ function SummaryBlock({
   data: Resume['data'];
   t: ThemeCtx;
 }) {
-  if (!data.summary.text)
-    return null;
+  if (!data.summary.text) return null;
 
   return (
     <p
@@ -944,7 +969,7 @@ function PersonalHeader({
   );
 }
 
-/* ---------- Templates ---------- */
+/* ---------- section dispatcher ---------- */
 
 function Section({
   kind,
@@ -970,8 +995,8 @@ function Section({
         <div>
           <SectionTitle
             title={
-              data.summary
-                .title
+              data.summary.title ||
+              'Summary'
             }
             t={t}
             align={
@@ -1064,12 +1089,8 @@ function Section({
           <SkillsBlock
             data={data}
             t={t}
-            asPills={
-              pills
-            }
-            accent={
-              accent
-            }
+            asPills={pills}
+            accent={accent}
           />
         </div>
       );
@@ -1167,6 +1188,8 @@ function Section({
   }
 }
 
+/* ---------- modern ---------- */
+
 function Modern({
   data,
   t,
@@ -1195,8 +1218,7 @@ function Modern({
         <h1
           style={{
             fontSize:
-              t.baseFont +
-              20,
+              t.baseFont + 20,
             fontWeight: 800,
             margin: 0,
           }}
@@ -1223,8 +1245,7 @@ function Modern({
               t.baseFont - 1,
             opacity: 0.9,
             display: 'flex',
-            flexWrap:
-              'wrap',
+            flexWrap: 'wrap',
             gap:
               '2px 14px',
           }}
@@ -1240,9 +1261,7 @@ function Modern({
             .filter(Boolean)
             .map(
               (c, i) => (
-                <span
-                  key={i}
-                >
+                <span key={i}>
                   {c}
                 </span>
               ),
@@ -1267,14 +1286,11 @@ function Modern({
               key={s.id}
               style={{
                 marginBottom:
-                  t.spacing +
-                  4,
+                  t.spacing + 4,
               }}
             >
               <Section
-                kind={
-                  s.kind
-                }
+                kind={s.kind}
                 data={data}
                 t={t}
                 pills={
@@ -1292,6 +1308,8 @@ function Modern({
   );
 }
 
+/* ---------- classic ---------- */
+
 function Classic({
   data,
   t,
@@ -1301,7 +1319,7 @@ function Classic({
   t: ThemeCtx;
   sections: Resume['sectionOrder'];
 }) {
-  t = {
+  const templateTheme = {
     ...t,
     fontStack:
       FONT_STACKS.serif,
@@ -1318,12 +1336,12 @@ function Classic({
     >
       <PersonalHeader
         data={data}
-        t={t}
+        t={templateTheme}
         layout="center"
       />
 
       <Divider
-        color={t.accent}
+        color={templateTheme.accent}
       />
 
       {sections
@@ -1337,22 +1355,22 @@ function Classic({
             key={s.id}
             style={{
               marginBottom:
-                t.spacing +
+                templateTheme.spacing +
                 4,
             }}
           >
             <Section
-              kind={
-                s.kind
-              }
+              kind={s.kind}
               data={data}
-              t={t}
+              t={templateTheme}
             />
           </div>
         ))}
     </div>
   );
 }
+
+/* ---------- minimal ---------- */
 
 function Minimal({
   data,
@@ -1382,30 +1400,22 @@ function Minimal({
             'personal',
         )
         .map(
-          (
-            s,
-            i,
-            arr,
-          ) => (
+          (s, i, arr) => (
             <div
               key={s.id}
               style={{
                 marginBottom:
-                  t.spacing +
-                  2,
+                  t.spacing + 2,
               }}
             >
               <Section
-                kind={
-                  s.kind
-                }
+                kind={s.kind}
                 data={data}
                 t={t}
               />
 
               {i <
-                arr.length -
-                  1 && (
+                arr.length - 1 && (
                 <div
                   style={{
                     height: 1,
@@ -1423,6 +1433,8 @@ function Minimal({
   );
 }
 
+/* ---------- executive ---------- */
+
 function Executive({
   data,
   t,
@@ -1432,7 +1444,7 @@ function Executive({
   t: ThemeCtx;
   sections: Resume['sectionOrder'];
 }) {
-  t = {
+  const templateTheme = {
     ...t,
     fontStack:
       FONT_STACKS.serif,
@@ -1453,14 +1465,14 @@ function Executive({
       <div
         style={{
           textAlign: 'center',
-          borderBottom: `3px solid ${t.accent}`,
+          borderBottom: `3px solid ${templateTheme.accent}`,
           paddingBottom: 16,
         }}
       >
         <h1
           style={{
             fontSize:
-              t.baseFont +
+              templateTheme.baseFont +
               22,
             fontWeight: 800,
             margin: 0,
@@ -1473,10 +1485,12 @@ function Executive({
 
         <div
           style={{
-            color: t.muted,
+            color:
+              templateTheme.muted,
             marginTop: 6,
             fontSize:
-              t.baseFont + 1,
+              templateTheme.baseFont +
+              1,
           }}
         >
           {p.jobTitle}
@@ -1485,9 +1499,11 @@ function Executive({
         <div
           style={{
             marginTop: 8,
-            color: t.muted,
+            color:
+              templateTheme.muted,
             fontSize:
-              t.baseFont - 1,
+              templateTheme.baseFont -
+              1,
           }}
         >
           {[
@@ -1497,9 +1513,7 @@ function Executive({
             p.linkedin,
           ]
             .filter(Boolean)
-            .join(
-              '  |  ',
-            )}
+            .join('  |  ')}
         </div>
       </div>
 
@@ -1519,16 +1533,14 @@ function Executive({
               key={s.id}
               style={{
                 marginBottom:
-                  t.spacing +
+                  templateTheme.spacing +
                   4,
               }}
             >
               <Section
-                kind={
-                  s.kind
-                }
+                kind={s.kind}
                 data={data}
-                t={t}
+                t={templateTheme}
                 center
               />
             </div>
@@ -1537,6 +1549,8 @@ function Executive({
     </div>
   );
 }
+
+/* ---------- google ---------- */
 
 function GoogleStyle({
   data,
@@ -1585,8 +1599,7 @@ function GoogleStyle({
           <h1
             style={{
               fontSize:
-                t.baseFont +
-                18,
+                t.baseFont + 18,
               fontWeight: 700,
               color: t.text,
               margin: 0,
@@ -1601,8 +1614,7 @@ function GoogleStyle({
               color:
                 t.primary,
               fontSize:
-                t.baseFont +
-                1,
+                t.baseFont + 1,
               marginTop: 2,
             }}
           >
@@ -1634,9 +1646,7 @@ function GoogleStyle({
           .filter(Boolean)
           .map(
             (c, i) => (
-              <span
-                key={i}
-              >
+              <span key={i}>
                 {c}
               </span>
             ),
@@ -1659,14 +1669,11 @@ function GoogleStyle({
               key={s.id}
               style={{
                 marginBottom:
-                  t.spacing +
-                  2,
+                  t.spacing + 2,
               }}
             >
               <Section
-                kind={
-                  s.kind
-                }
+                kind={s.kind}
                 data={data}
                 t={t}
                 pills={
@@ -1684,6 +1691,8 @@ function GoogleStyle({
   );
 }
 
+/* ---------- harvard ---------- */
+
 function Harvard({
   data,
   t,
@@ -1693,7 +1702,7 @@ function Harvard({
   t: ThemeCtx;
   sections: Resume['sectionOrder'];
 }) {
-  t = {
+  const templateTheme = {
     ...t,
     fontStack:
       FONT_STACKS.serif,
@@ -1722,12 +1731,12 @@ function Harvard({
         <h1
           style={{
             fontSize:
-              t.baseFont +
+              templateTheme.baseFont +
               18,
             fontWeight: 800,
             margin: 0,
             color:
-              t.accent,
+              templateTheme.accent,
             letterSpacing: 2,
           }}
         >
@@ -1737,10 +1746,12 @@ function Harvard({
 
         <div
           style={{
-            color: t.muted,
+            color:
+              templateTheme.muted,
             marginTop: 6,
             fontSize:
-              t.baseFont - 1,
+              templateTheme.baseFont -
+              1,
           }}
         >
           {[
@@ -1750,9 +1761,7 @@ function Harvard({
             p.linkedin,
           ]
             .filter(Boolean)
-            .join(
-              '  |  ',
-            )}
+            .join('  |  ')}
         </div>
       </div>
 
@@ -1767,22 +1776,22 @@ function Harvard({
             key={s.id}
             style={{
               marginBottom:
-                t.spacing +
+                templateTheme.spacing +
                 2,
             }}
           >
             <Section
-              kind={
-                s.kind
-              }
+              kind={s.kind}
               data={data}
-              t={t}
+              t={templateTheme}
             />
           </div>
         ))}
     </div>
   );
 }
+
+/* ---------- stanford ---------- */
 
 function Stanford({
   data,
@@ -1793,7 +1802,7 @@ function Stanford({
   t: ThemeCtx;
   sections: Resume['sectionOrder'];
 }) {
-  t = {
+  const templateTheme = {
     ...t,
     fontStack:
       FONT_STACKS.serif,
@@ -1823,12 +1832,12 @@ function Stanford({
         <h1
           style={{
             fontSize:
-              t.baseFont +
+              templateTheme.baseFont +
               20,
             fontWeight: 800,
             margin: 0,
             color:
-              t.accent,
+              templateTheme.accent,
           }}
         >
           {p.fullName ||
@@ -1837,10 +1846,12 @@ function Stanford({
 
         <div
           style={{
-            color: t.text,
+            color:
+              templateTheme.text,
             marginTop: 4,
             fontSize:
-              t.baseFont + 1,
+              templateTheme.baseFont +
+              1,
           }}
         >
           {p.jobTitle}
@@ -1848,10 +1859,12 @@ function Stanford({
 
         <div
           style={{
-            color: t.muted,
+            color:
+              templateTheme.muted,
             marginTop: 6,
             fontSize:
-              t.baseFont - 1,
+              templateTheme.baseFont -
+              1,
           }}
         >
           {[
@@ -1860,14 +1873,14 @@ function Stanford({
             p.location,
           ]
             .filter(Boolean)
-            .join(
-              '  ·  ',
-            )}
+            .join('  ·  ')}
         </div>
       </div>
 
       <Divider
-        color={t.accent}
+        color={
+          templateTheme.accent
+        }
       />
 
       {sections
@@ -1881,22 +1894,22 @@ function Stanford({
             key={s.id}
             style={{
               marginBottom:
-                t.spacing +
+                templateTheme.spacing +
                 2,
             }}
           >
             <Section
-              kind={
-                s.kind
-              }
+              kind={s.kind}
               data={data}
-              t={t}
+              t={templateTheme}
             />
           </div>
         ))}
     </div>
   );
 }
+
+/* ---------- professional ---------- */
 
 function Professional({
   data,
@@ -1940,17 +1953,21 @@ function Professional({
       style={{
         display: 'flex',
         minHeight: 1123,
+        alignItems: 'stretch',
       }}
     >
       <div
         style={{
           width: 240,
+          flex: '0 0 240px',
           background:
             '#f1f5f9',
           padding:
             '28px 24px',
           borderRight:
             '1px solid #e2e8f0',
+          boxSizing:
+            'border-box',
         }}
       >
         {p.photoUrl && (
@@ -1986,6 +2003,8 @@ function Professional({
                 4,
               color:
                 t.text,
+              overflowWrap:
+                'break-word',
             }}
           >
             {p.fullName}
@@ -1999,6 +2018,8 @@ function Professional({
                 t.baseFont -
                 1,
               marginTop: 2,
+              overflowWrap:
+                'break-word',
             }}
           >
             {p.jobTitle}
@@ -2051,9 +2072,7 @@ function Professional({
               }}
             >
               <Section
-                kind={
-                  s.kind
-                }
+                kind={s.kind}
                 data={data}
                 t={t}
                 pills={
@@ -2072,8 +2091,11 @@ function Professional({
       <div
         style={{
           flex: 1,
+          minWidth: 0,
           padding:
             '28px 32px',
+          boxSizing:
+            'border-box',
         }}
       >
         {mainSections.map(
@@ -2087,9 +2109,7 @@ function Professional({
               }}
             >
               <Section
-                kind={
-                  s.kind
-                }
+                kind={s.kind}
                 data={data}
                 t={t}
               />
@@ -2100,6 +2120,8 @@ function Professional({
     </div>
   );
 }
+
+/* ---------- creative ---------- */
 
 function Creative({
   data,
@@ -2143,17 +2165,21 @@ function Creative({
       style={{
         display: 'flex',
         minHeight: 1123,
+        alignItems: 'stretch',
       }}
     >
       <div
         style={{
           width: 260,
+          flex: '0 0 260px',
           background:
             t.primary,
           color:
             '#ffffff',
           padding:
             '32px 24px',
+          boxSizing:
+            'border-box',
         }}
       >
         {p.photoUrl && (
@@ -2189,6 +2215,8 @@ function Creative({
               fontSize:
                 t.baseFont +
                 6,
+              overflowWrap:
+                'break-word',
             }}
           >
             {p.fullName}
@@ -2201,6 +2229,8 @@ function Creative({
               fontSize:
                 t.baseFont,
               marginTop: 2,
+              overflowWrap:
+                'break-word',
             }}
           >
             {p.jobTitle}
@@ -2253,9 +2283,7 @@ function Creative({
               }}
             >
               <Section
-                kind={
-                  s.kind
-                }
+                kind={s.kind}
                 data={data}
                 t={{
                   ...t,
@@ -2277,8 +2305,11 @@ function Creative({
       <div
         style={{
           flex: 1,
+          minWidth: 0,
           padding:
             '32px 32px',
+          boxSizing:
+            'border-box',
         }}
       >
         {mainSections.map(
@@ -2292,9 +2323,7 @@ function Creative({
               }}
             >
               <Section
-                kind={
-                  s.kind
-                }
+                kind={s.kind}
                 data={data}
                 t={t}
               />
@@ -2305,6 +2334,8 @@ function Creative({
     </div>
   );
 }
+
+/* ---------- corporate ---------- */
 
 function Corporate({
   data,
@@ -2337,9 +2368,14 @@ function Corporate({
             'space-between',
           alignItems:
             'center',
+          gap: 20,
         }}
       >
-        <div>
+        <div
+          style={{
+            minWidth: 0,
+          }}
+        >
           <h1
             style={{
               fontSize:
@@ -2348,6 +2384,8 @@ function Corporate({
               fontWeight:
                 800,
               margin: 0,
+              overflowWrap:
+                'break-word',
             }}
           >
             {p.fullName ||
@@ -2359,6 +2397,8 @@ function Corporate({
               opacity:
                 0.85,
               marginTop: 4,
+              overflowWrap:
+                'break-word',
             }}
           >
             {p.jobTitle}
@@ -2373,6 +2413,7 @@ function Corporate({
               t.baseFont -
               2,
             opacity: 0.9,
+            flexShrink: 0,
           }}
         >
           {[
@@ -2385,6 +2426,10 @@ function Corporate({
               (c, i) => (
                 <div
                   key={i}
+                  style={{
+                    overflowWrap:
+                      'break-word',
+                  }}
                 >
                   {c}
                 </div>
@@ -2423,9 +2468,7 @@ function Corporate({
               }}
             >
               <Section
-                kind={
-                  s.kind
-                }
+                kind={s.kind}
                 data={data}
                 t={t}
                 pills={
@@ -2440,26 +2483,5 @@ function Corporate({
           ))}
       </div>
     </div>
-  );
-}
-
-function sectionLabel(
-  kind: string,
-  data: Resume['data'],
-): string {
-  if (kind === 'summary') {
-    return (
-      data.summary.title ||
-      'Summary'
-    );
-  }
-
-  if (kind === 'custom') {
-    return 'Custom';
-  }
-
-  return (
-    kind.charAt(0).toUpperCase() +
-    kind.slice(1)
   );
 }
