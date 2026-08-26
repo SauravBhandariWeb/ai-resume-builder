@@ -504,7 +504,18 @@ export default function ResumeBuilder() {
                 </span>
               </div>
 
-              <div className="w-full min-w-0 overflow-x-hidden overflow-y-auto bg-ink-100 dark:bg-ink-950 rounded-xl p-2 sm:p-4 max-h-[calc(100vh-220px)]">
+              {/* Preview viewport */}
+              <div
+                className="w-full min-w-0 overflow-y-auto overflow-x-hidden bg-ink-100 dark:bg-ink-950 rounded-xl p-2 sm:p-4"
+                style={{
+                  maxHeight:
+                    'calc(100vh - 220px)',
+                  overscrollBehavior:
+                    'contain',
+                  WebkitOverflowScrolling:
+                    'touch',
+                }}
+              >
                 <div className="w-full min-w-0">
                   <ResponsivePreview
                     resume={resume}
@@ -582,6 +593,10 @@ export default function ResumeBuilder() {
   );
 }
 
+/* =========================================================
+   RESPONSIVE PREVIEW
+   ========================================================= */
+
 function ResponsivePreview({
   resume,
 }: {
@@ -590,108 +605,244 @@ function ResponsivePreview({
   const containerRef =
     useRef<HTMLDivElement>(null);
 
+  const pageRef =
+    useRef<HTMLDivElement>(null);
+
   const [scale, setScale] =
     useState(1);
 
-  const updateScale =
-    useCallback(() => {
-      const container =
-        containerRef.current;
+  const [contentHeight, setContentHeight] =
+    useState(1123);
 
-      if (!container) return;
+  const A4_WIDTH = 794;
+  const MIN_A4_HEIGHT = 1123;
 
-      const availableWidth =
-        container.clientWidth;
-
-      if (availableWidth <= 0) return;
-
-      const A4_WIDTH = 794;
-
-      const nextScale = Math.min(
-        1,
-        availableWidth / A4_WIDTH,
-      );
-
-      setScale(prev =>
-        Math.abs(
-          prev - nextScale,
-        ) < 0.001
-          ? prev
-          : nextScale,
-      );
-    }, []);
-
-  useEffect(() => {
-    updateScale();
-
+  const updateScale = useCallback(() => {
     const container =
       containerRef.current;
 
     if (!container) return;
 
+    const availableWidth =
+      container.clientWidth;
+
+    if (availableWidth <= 0) return;
+
+    const nextScale = Math.min(
+      1,
+      availableWidth / A4_WIDTH,
+    );
+
+    setScale(prev =>
+      Math.abs(
+        prev - nextScale,
+      ) < 0.001
+        ? prev
+        : nextScale,
+    );
+  }, []);
+
+  const updateHeight = useCallback(() => {
+    const page =
+      pageRef.current;
+
+    if (!page) return;
+
+    /*
+     * ResumeDocument has a real A4 width and its
+     * templates can be taller than one A4 page.
+     *
+     * scrollHeight gives us the actual unscaled
+     * document height.
+     */
+    const measuredHeight =
+      Math.max(
+        MIN_A4_HEIGHT,
+        page.scrollHeight,
+        page.offsetHeight,
+      );
+
+    setContentHeight(
+      prev =>
+        Math.abs(
+          prev - measuredHeight,
+        ) < 1
+          ? prev
+          : measuredHeight,
+    );
+  }, []);
+
+  /*
+   * Initial measurement + width/height observers.
+   */
+  useEffect(() => {
+    updateScale();
+    updateHeight();
+
+    const container =
+      containerRef.current;
+
+    const page =
+      pageRef.current;
+
+    if (!container || !page) {
+      return;
+    }
+
     const resizeObserver =
       new ResizeObserver(() => {
         updateScale();
+        updateHeight();
       });
 
-    resizeObserver.observe(container);
+    resizeObserver.observe(
+      container,
+    );
+
+    resizeObserver.observe(
+      page,
+    );
+
+    const mutationObserver =
+      new MutationObserver(() => {
+        updateHeight();
+      });
+
+    mutationObserver.observe(page, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+    });
 
     window.addEventListener(
       'resize',
       updateScale,
     );
 
+    window.addEventListener(
+      'resize',
+      updateHeight,
+    );
+
     return () => {
       resizeObserver.disconnect();
+      mutationObserver.disconnect();
+
       window.removeEventListener(
         'resize',
         updateScale,
       );
+
+      window.removeEventListener(
+        'resize',
+        updateHeight,
+      );
     };
-  }, [updateScale]);
-
-  useEffect(() => {
-    const id = requestAnimationFrame(() => {
-      updateScale();
-    });
-
-    return () =>
-      cancelAnimationFrame(id);
   }, [
-    resume.templateId,
-    resume.theme.font,
-    resume.theme.fontSize,
-    resume.theme.spacing,
     updateScale,
+    updateHeight,
   ]);
 
-  const A4_WIDTH = 794;
-  const A4_HEIGHT = 1123;
+  /*
+   * Recalculate when resume content/template/design changes.
+   * Multiple animation frames help when fonts/layout/images
+   * need one browser paint before height is final.
+   */
+  useEffect(() => {
+    let frame1 = 0;
+    let frame2 = 0;
+
+    frame1 =
+      requestAnimationFrame(() => {
+        updateScale();
+        updateHeight();
+
+        frame2 =
+          requestAnimationFrame(() => {
+            updateScale();
+            updateHeight();
+          });
+      });
+
+    return () => {
+      cancelAnimationFrame(
+        frame1,
+      );
+      cancelAnimationFrame(
+        frame2,
+      );
+    };
+  }, [
+    resume,
+    updateScale,
+    updateHeight,
+  ]);
+
+  /*
+   * Give images/fonts a chance to change the final height.
+   */
+  useEffect(() => {
+    let timer1: number | undefined;
+    let timer2: number | undefined;
+
+    timer1 = window.setTimeout(() => {
+      updateHeight();
+    }, 100);
+
+    timer2 = window.setTimeout(() => {
+      updateHeight();
+    }, 350);
+
+    return () => {
+      if (timer1) {
+        window.clearTimeout(
+          timer1,
+        );
+      }
+
+      if (timer2) {
+        window.clearTimeout(
+          timer2,
+        );
+      }
+    };
+  }, [
+    resume,
+    updateHeight,
+  ]);
 
   const scaledWidth =
     A4_WIDTH * scale;
 
   const scaledHeight =
-    A4_HEIGHT * scale;
+    contentHeight * scale;
 
   return (
     <div
       ref={containerRef}
-      className="w-full min-w-0 overflow-hidden"
+      className="w-full min-w-0 overflow-visible"
+      style={{
+        minHeight: `${scaledHeight}px`,
+      }}
     >
       <div
         className="relative mx-auto"
         style={{
           width: `${scaledWidth}px`,
           height: `${scaledHeight}px`,
+          minHeight: `${scaledHeight}px`,
         }}
       >
         <div
+          ref={pageRef}
           className="absolute left-0 top-0"
           style={{
             width: `${A4_WIDTH}px`,
-            height: `${A4_HEIGHT}px`,
-            transform: `scale(${scale})`,
+            minHeight: `${MIN_A4_HEIGHT}px`,
+            height: 'auto',
+            transform:
+              `scale(${scale})`,
             transformOrigin:
               'top left',
           }}
@@ -705,6 +856,10 @@ function ResponsivePreview({
     </div>
   );
 }
+
+/* =========================================================
+   DESIGN PANEL
+   ========================================================= */
 
 function DesignPanel({
   resume,
@@ -772,8 +927,10 @@ function DesignPanel({
               value={t.primary}
               onChange={e =>
                 onTheme({
-                  primary: e.target.value,
-                  accent: e.target.value,
+                  primary:
+                    e.target.value,
+                  accent:
+                    e.target.value,
                 })
               }
               className="absolute inset-0 opacity-0 cursor-pointer"
@@ -791,9 +948,18 @@ function DesignPanel({
 
         <div className="grid grid-cols-3 gap-2">
           {[
-            { id: 'sans', label: 'Sans' },
-            { id: 'serif', label: 'Serif' },
-            { id: 'mono', label: 'Mono' },
+            {
+              id: 'sans',
+              label: 'Sans',
+            },
+            {
+              id: 'serif',
+              label: 'Serif',
+            },
+            {
+              id: 'mono',
+              label: 'Mono',
+            },
           ].map(f => (
             <button
               key={f.id}
@@ -822,15 +988,25 @@ function DesignPanel({
 
         <div className="grid grid-cols-3 gap-2">
           {[
-            { id: 'sm', label: 'Small' },
-            { id: 'md', label: 'Medium' },
-            { id: 'lg', label: 'Large' },
+            {
+              id: 'sm',
+              label: 'Small',
+            },
+            {
+              id: 'md',
+              label: 'Medium',
+            },
+            {
+              id: 'lg',
+              label: 'Large',
+            },
           ].map(f => (
             <button
               key={f.id}
               onClick={() =>
                 onTheme({
-                  fontSize: f.id as any,
+                  fontSize:
+                    f.id as any,
                 })
               }
               className={cls(
