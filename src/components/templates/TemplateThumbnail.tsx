@@ -1,4 +1,4 @@
-import type { TemplateId, Resume } from '@/types';
+ye le import type { TemplateId, Resume } from '@/types';
 import { emptyResumeData, defaultSectionOrder, templateById } from '@/lib/resumeDefaults';
 import ResumeDocument from './ResumeDocument';
 import { useMemo } from 'react';
@@ -26,7 +26,7 @@ export default function TemplateThumbnail({ templateId }: { templateId: Template
   return (
     <div style={{ pointerEvents: 'none' }}>
       <div style={{ transform: 'scale(0.42)', transformOrigin: 'top left', width: 794 }}>
-        <ResumeDocument resume={resume} scale={1} plainSkillPills />
+        <ResumeDocument resume={resume} scale={1} />
       </div>
     </div>
   );
